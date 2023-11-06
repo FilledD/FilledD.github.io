@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="flask 是如何取出 request 的之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。 12">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://example.com/2023/11/06/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="flask 是如何取出 request 的之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。 12">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-11-06T13:33:45.313Z">
+<meta property="article:modified_time" content="2023-11-06T13:33:45.314Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 7.0.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-flask源码阅读(三)" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/06/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/" class="article-date">
+  <time class="dt-published" datetime="2023-11-06T13:33:45.313Z" itemprop="datePublished">2023-11-06</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="flask-是如何取出-request-的"><a href="#flask-是如何取出-request-的" class="headerlink" title="flask 是如何取出 request 的"></a>flask 是如何取出 request 的</h1><p>之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">wsgi_app</span>(<span class="params">self, environ, start_response</span>):</span><br><span class="line">    ctx = self.request_context(environ)</span><br><span class="line">    ctx.push()</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">request_context</span>(<span class="params">self, environ</span>):</span><br><span class="line">    <span class="keyword">return</span> RequestContext(self, environ)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到 wsgi_app()调用了 request_context()方法，request_context()返回了 RequestContext 的实例。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">RequestContext</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, app, environ, request=<span class="literal">None</span></span>):</span><br><span class="line">        self.app = app</span><br><span class="line">        <span class="keyword">if</span> request <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            request = app.request_class(environ)</span><br><span class="line">        self.request = request</span><br><span class="line">        self.url_adapter = app.create_url_adapter(self.request)</span><br><span class="line">        self.flashes = <span class="literal">None</span></span><br><span class="line">        self.session = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        self._implicit_app_ctx_stack = []</span><br><span class="line"></span><br><span class="line">        self.preserved = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        self._preserved_exc = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        self._after_request_functions = []</span><br><span class="line"></span><br><span class="line">        self.match_request()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">push</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        top = _request_ctx_stack.top</span><br><span class="line">        <span class="keyword">if</span> top <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> top.preserved:</span><br><span class="line">            top.pop(top._preserved_exc)</span><br><span class="line"></span><br><span class="line">        app_ctx = _app_ctx_stack.top</span><br><span class="line">        <span class="keyword">if</span> app_ctx <span class="keyword">is</span> <span class="literal">None</span> <span class="keyword">or</span> app_ctx.app != self.app:</span><br><span class="line">            app_ctx = self.app.app_context()</span><br><span class="line">            app_ctx.push()</span><br><span class="line">            self._implicit_app_ctx_stack.append(app_ctx)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self._implicit_app_ctx_stack.append(<span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">hasattr</span>(sys, <span class="string">&#x27;exc_clear&#x27;</span>):</span><br><span class="line">            sys.exc_clear()</span><br><span class="line"></span><br><span class="line">        _request_ctx_stack.push(self)</span><br><span class="line"></span><br><span class="line">        self.session = self.app.open_session(self.request)</span><br><span class="line">        <span class="keyword">if</span> self.session <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self.session = self.app.make_null_session()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在初始化 RequestContext 实例的时候，传入了 Flask()实例和 environ 变量，并使用 environ 生成了 Requst 实例，这里不继续深究 Requst 实例的细节。</p>
+<p>继续分析 push()函数做了什么。这里使用到了_request_ctx_stack 和_app_ctx_stack 的全局变量。分别对_request_ctx_stack 和_app_ctx_stack 取出了栈顶的值，并且将 ReqeustContext 的实例压入_request_ctx_stack 中。那么_reqeust_ctx_stack 和_app_ctx_stack 是什么呢？又为什么要使用这两个栈呢？继续看看这两个栈的代码细节。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># context locals</span></span><br><span class="line">_request_ctx_stack = LocalStack()</span><br><span class="line">_app_ctx_stack = LocalStack()</span><br><span class="line">current_app = LocalProxy(_find_app)</span><br><span class="line">request = LocalProxy(partial(_lookup_req_object, <span class="string">&#x27;request&#x27;</span>))</span><br><span class="line">session = LocalProxy(partial(_lookup_req_object, <span class="string">&#x27;session&#x27;</span>))</span><br><span class="line">g = LocalProxy(partial(_lookup_app_object, <span class="string">&#x27;g&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<p>可以看到二者都是 LocalStack()的实例，至此我们可以知道，我们处理 environ 参数的流程如下</p>
+<ol>
+<li>获取到 environ</li>
+<li>生成 RequestContext 对象</li>
+<li>将 RequestContext 压入_request_ctx_stack</li>
+</ol>
+<p>回忆我们前文找到业务逻辑并传入参数的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">dispatch_request</span>(<span class="params">self</span>):</span><br><span class="line">    req = _request_ctx_stack.top.request</span><br><span class="line">    <span class="keyword">if</span> req.routing_exception <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        self.raise_routing_exception(req)</span><br><span class="line">    rule = req.url_rule</span><br><span class="line">    <span class="comment"># if we provide automatic options for this URL and the</span></span><br><span class="line">    <span class="comment"># request came with the OPTIONS method, reply automatically</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">getattr</span>(rule, <span class="string">&#x27;provide_automatic_options&#x27;</span>, <span class="literal">False</span>) \</span><br><span class="line">       <span class="keyword">and</span> req.method == <span class="string">&#x27;OPTIONS&#x27;</span>:</span><br><span class="line">        <span class="keyword">return</span> self.make_default_options_response()</span><br><span class="line">    <span class="comment"># otherwise dispatch to the handler for that endpoint</span></span><br><span class="line">    <span class="keyword">return</span> self.view_functions[rule.endpoint](**req.view_args)</span><br></pre></td></tr></table></figure>
+
+<p>也就是说从当前的栈顶直接取出就是 reqeust 的参数，那么问题来了，如果是多线程的情况，如何能保证取到当前线程的参数呢？继续深入 LocalStack 的代码实现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LocalStack</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self._local = Local()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__release_local__</span>(<span class="params">self</span>):</span><br><span class="line">        self._local.__release_local__()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">def</span> <span class="title function_">_lookup</span>():</span><br><span class="line">            rv = self.top</span><br><span class="line">            <span class="keyword">if</span> rv <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;object unbound&#x27;</span>)</span><br><span class="line">            <span class="keyword">return</span> rv</span><br><span class="line">        <span class="keyword">return</span> LocalProxy(_lookup)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">push</span>(<span class="params">self, obj</span>):</span><br><span class="line">        rv = <span class="built_in">getattr</span>(self._local, <span class="string">&#x27;stack&#x27;</span>, <span class="literal">None</span>)</span><br><span class="line">        <span class="keyword">if</span> rv <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._local.stack = rv = []</span><br><span class="line">        rv.append(obj)</span><br><span class="line">        <span class="keyword">return</span> rv</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">pop</span>(<span class="params">self</span>):</span><br><span class="line">        stack = <span class="built_in">getattr</span>(self._local, <span class="string">&#x27;stack&#x27;</span>, <span class="literal">None</span>)</span><br><span class="line">        <span class="keyword">if</span> stack <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">        <span class="keyword">elif</span> <span class="built_in">len</span>(stack) == <span class="number">1</span>:</span><br><span class="line">            release_local(self._local)</span><br><span class="line">            <span class="keyword">return</span> stack[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> stack.pop()</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">top</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self._local.stack[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">except</span> (AttributeError, IndexError):</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span></span><br></pre></td></tr></table></figure>
+
+<p>LocalStack 并没有解决我们的问题。但是我们可以知道，其实 LocalStack 内部实现了 Local 的实例_local，并将传入的值以”stack”的 key 传入_local。那么 Local 又实现了什么？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="keyword">from</span> greenlet <span class="keyword">import</span> getcurrent <span class="keyword">as</span> get_ident</span><br><span class="line"><span class="keyword">except</span> ImportError:</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">from</span> thread <span class="keyword">import</span> get_ident</span><br><span class="line">    <span class="keyword">except</span> ImportError:</span><br><span class="line">        <span class="keyword">from</span> _thread <span class="keyword">import</span> get_ident</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Local</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    __slots__ = (<span class="string">&#x27;__storage__&#x27;</span>, <span class="string">&#x27;__ident_func__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__storage__&#x27;</span>, &#123;&#125;)</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__ident_func__&#x27;</span>, get_ident)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self, proxy</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Create a proxy for a name.&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">return</span> LocalProxy(self, proxy)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__release_local__</span>(<span class="params">self</span>):</span><br><span class="line">        self.__storage__.pop(self.__ident_func__(), <span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self.__storage__[self.__ident_func__()][name]</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__setattr__</span>(<span class="params">self, name, value</span>):</span><br><span class="line">        ident = self.__ident_func__()</span><br><span class="line">        storage = self.__storage__</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            storage[ident][name] = value</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            storage[ident] = &#123;name: value&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__delattr__</span>(<span class="params">self, name</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">del</span> self.__storage__[self.__ident_func__()][name]</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(name)</span><br></pre></td></tr></table></figure>
+
+<p>从以上可以发现重写了<strong>setattr</strong>, <strong>delattr</strong>, <strong>release_local</strong>方法 Local 将相关的属性存入了<strong>storage</strong>,而<strong>setattr</strong>在存储 key,value 的时候，使用的其实是一个二层字典，结构为<strong>storage</strong>[ident][name],其中 ident 为 get_ident()方法的返回值，也就是当前线程的值。这也就解释了 Local 是如何实现线程隔离的存储 request 参数的了。</p>
+<p>在 Local 的<strong>call</strong>中，创建了一个 LocalProxy 对象，那么这又是什么？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LocalProxy</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Acts as a proxy for a werkzeug local.</span></span><br><span class="line"><span class="string">    Forwards all operations to a proxied object. &quot;&quot;&quot;</span></span><br><span class="line">    __slots__ = (<span class="string">&#x27;__local&#x27;</span>, <span class="string">&#x27;__dict__&#x27;</span>, <span class="string">&#x27;__name__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, local, name=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;_LocalProxy__local&#x27;</span>, local)</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__name__&#x27;</span>, name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_get_current_object</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Return the current object.&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(self.__local, <span class="string">&#x27;__release_local__&#x27;</span>):</span><br><span class="line">            <span class="keyword">return</span> self.__local()</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">getattr</span>(self.__local, self.__name__)</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;no object bound to %s&#x27;</span> % self.__name__)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__dict__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self._get_current_object().__dict__</span><br><span class="line">        <span class="keyword">except</span> RuntimeError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(<span class="string">&#x27;__dict__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getattr__</span>(<span class="params">self, name</span>):</span><br><span class="line">        <span class="keyword">if</span> name == <span class="string">&#x27;__members__&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">dir</span>(self._get_current_object())</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">getattr</span>(self._get_current_object(), name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__setitem__</span>(<span class="params">self, key, value</span>):</span><br><span class="line">        self._get_current_object()[key] = value</span><br></pre></td></tr></table></figure>
+
+<p>我们看到在 LocalProxy 类出初始化的时候，传入了一个 local 对象。并将该对象保存在<strong>local 中。**注意，</strong>setattr<strong>方法中使用的是_LocalProxy</strong>local,这是因为在 python 中<strong>开头的属性会被保存为_ClassName</strong>variable 的形式**。然后使用的是_get_current_object()方法从__local 中获取对应的对象。</p>
+<p>这里实现的关键是把通过参数传递进来的 Local 实例保存在 __local 属性中，并定义了 _get_current_object() 方法获取当前线程或者协程对应的对象。</p>
+<p>LocalProxy 是一个典型的代理模式实现，它在构造时接受一个 callable 的参数（比如一个函数），这个参数被调用后的返回值本身应该是一个 Thread Local 对象。对一个 LocalProxy 对象的所有操作，包括属性访问、方法调用（当然方法调用就是属性访问）甚至是二元操作都会转发到那个 callable 参数返回的 Thread Local 对象上。</p>
+<p>LocalProxy 的一个使用场景是 LocalStack 的 <strong>call</strong> 方法。比如 my_local_stack 是一个 LocalStack 实例，那么 my_local_stack() 能返回一个 LocalProxy 对象，这个对象始终指向 my_local_stack 的栈顶元素。如果栈顶元素不存在，访问这个 LocalProxy 的时候会抛出 RuntimeError。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/11/06/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/" data-id="clomy24lj0001tkvt7syr1lr3" data-title="" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/06/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%BA%8C)/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          (no title)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/11/06/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title"></div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/11/">November 2023</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/11/06/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/06/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/06/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/06/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%B8%80)/">(no title)</a>
+          </li>
+        
+          <li>
+            <a href="/2023/11/06/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/">(no title)</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
