@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/EasyBlog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/EasyBlog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/EasyBlog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/EasyBlog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/EasyBlog/css/main.css">
+
+
+<link rel="stylesheet" href="/EasyBlog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xudalin0609.github.io","root":"/EasyBlog/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="nova的构成openstac由不同的组件构成，目前常用的组件有nova,cinder,glance,neutron等。组件之间采用restful-api进行通信，组件内部使用RPC进行通讯。 每个组件内部又分为不同的模块，以nova为例，可以分出的模块如下：  nova api nova compute nova schedule nova condutor  nova的内部的基本流程如果我向n">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenStack源码阅读(一)">
+<meta property="og:url" content="http://xudalin0609.github.io/EasyBlog/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/index.html">
+<meta property="og:site_name" content="Relax And Slower">
+<meta property="og:description" content="nova的构成openstac由不同的组件构成，目前常用的组件有nova,cinder,glance,neutron等。组件之间采用restful-api进行通信，组件内部使用RPC进行通讯。 每个组件内部又分为不同的模块，以nova为例，可以分出的模块如下：  nova api nova compute nova schedule nova condutor  nova的内部的基本流程如果我向n">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-12-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-11-06T15:08:31.657Z">
+<meta property="article:author" content="Xu">
+<meta property="article:tag" content="源码阅读">
+<meta property="article:tag" content="OpenStack">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>OpenStack源码阅读(一) | Relax And Slower</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/EasyBlog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Relax And Slower</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/EasyBlog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/EasyBlog/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/EasyBlog/images/avatar.gif">
+      <meta itemprop="name" content="Xu">
+      <meta itemprop="description" content="独自发疯">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Relax And Slower">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenStack源码阅读(一)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-11-06 23:08:31" itemprop="dateModified" datetime="2023-11-06T23:08:31+08:00">2023-11-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/EasyBlog/categories/OpenStack/" itemprop="url" rel="index"><span itemprop="name">OpenStack</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="nova的构成"><a href="#nova的构成" class="headerlink" title="nova的构成"></a>nova的构成</h3><p>openstac由不同的组件构成，目前常用的组件有nova,cinder,glance,neutron等。组件之间采用restful-api进行通信，组件内部使用RPC进行通讯。</p>
+<p>每个组件内部又分为不同的模块，以nova为例，可以分出的模块如下：</p>
+<ul>
+<li>nova api</li>
+<li>nova compute</li>
+<li>nova schedule</li>
+<li>nova condutor</li>
+</ul>
+<h3 id="nova的内部的基本流程"><a href="#nova的内部的基本流程" class="headerlink" title="nova的内部的基本流程"></a>nova的内部的基本流程</h3><p>如果我向nova发送了一个create server的restful请求，nova内部会如何处理这个请求呢？大致的流程概括如下。</p>
+<ol>
+<li>nova api接受到请求，做出相应的校验，参数处理和资源准备，然后rpc调用nova-schduler</li>
+<li>nova scheduler是虚拟机调度服务，选择合适的计算节点运行虚拟机，然后rpc调用nova-compute</li>
+<li>nova compute是虚拟机的管理服务，通过调用hypervisor api实现虚拟机的生命周期管理，以kvm为例，就是使用libvert的api进行虚拟机生命周期管理，在过程中会对conductor进行调用</li>
+<li>nova conductor和数据库进行交互（之所以使用nova conductor而不是nova compute直接和数据库交互是出于安全性和可伸缩性考虑）</li>
+</ol>
+<p>每个组件是如何实现的，具体做了哪些事情，以及为什么要这么实现，后面会继续尝试进行分析。</p>
+<h3 id="nova-api的实现"><a href="#nova-api的实现" class="headerlink" title="nova api的实现"></a>nova api的实现</h3><p>nova api使用paste_deploy来帮助生成wsgi app。要理解nova api的实现，首先要理解paste deploy的使用方式。</p>
+<p>简单的概括一下paste deploy是做什么的。PasteDeploy是一套发现和配置WSGI应用的系统。它根据指定的配置文件动态生成入口点和组织WSGI applieation间的逻辑关系。换成一个比较容易理解的方式来说，就是使用配置文件生成wsgi app并将它们组装起来。</p>
+<p>来看一个最小的deploy使用demo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># config.ini</span><br><span class="line">[composite:main]</span><br><span class="line">use = call:urlmap:urlmap_factory</span><br><span class="line">/v1: router_v1 </span><br><span class="line"></span><br><span class="line">[composite:router_v1]</span><br><span class="line">use = call:router_v1:app_factory</span><br><span class="line">r1 = filter_v1 app_v1</span><br><span class="line"></span><br><span class="line">[filter:filter_v1]</span><br><span class="line">paste.filter_factory = filter_v1:filter_factory</span><br><span class="line"></span><br><span class="line">[app:app_v1]</span><br><span class="line">paste.app_factory = app_v1:app_factory</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># router_v1</span></span><br><span class="line"><span class="keyword">from</span> webob.dec <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> webob.exc</span><br><span class="line"><span class="keyword">from</span> routes <span class="keyword">import</span> Mapper, middleware</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">_load_pipeline</span>(<span class="params">loader, pipeline</span>):</span><br><span class="line">    filters = [loader.get_filter(n) <span class="keyword">for</span> n <span class="keyword">in</span> pipeline[:-<span class="number">1</span>]]</span><br><span class="line">    app = loader.get_app(pipeline[-<span class="number">1</span>])</span><br><span class="line">    filters.reverse()</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">filter</span> <span class="keyword">in</span> filters:</span><br><span class="line">        app = <span class="built_in">filter</span>(app)</span><br><span class="line">    <span class="keyword">return</span> app</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">app_factory</span>(<span class="params">loader, global_conf, **local_conf</span>):</span><br><span class="line">    pipeline = local_conf[<span class="string">&#x27;r1&#x27;</span>]</span><br><span class="line">    pipeline = pipeline.split()</span><br><span class="line">    <span class="keyword">return</span> _load_pipeline(loader, pipeline)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># filter_v1</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_str</span>(<span class="params">app</span>):</span><br><span class="line">    <span class="keyword">return</span> app + <span class="string">&quot;filter v1&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">filter_factory</span>(<span class="params">loader, **local_config</span>):</span><br><span class="line">    <span class="keyword">return</span> add_str</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># app_v1</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">app_factory</span>(<span class="params">loader, **local_config</span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;app v1&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+<p>从以上代码可以看到一个基本paste deploy的使用方式</p>
+<ul>
+<li>loadapp从配置文件中加载一个wsgi app</li>
+<li>可以通过paste deploy传入的loader获取到不同的组件</li>
+<li>将最终需要返回的app作为参数传入pipeline并经过层层处理</li>
+</ul>
+<p>对比nova api的实际配置文件如下：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># nova/etc/nova</span></span><br><span class="line"><span class="section">[composite:osapi_compute]</span></span><br><span class="line"><span class="attr">use</span> = call:nova.api.openstack.urlmap:urlmap_factory</span><br><span class="line">/: oscomputeversions</span><br><span class="line">/v2: openstack_compute_api_v21_legacy_v2_compatible</span><br><span class="line">/v2.1: openstack_compute_api_v21</span><br><span class="line"></span><br><span class="line"><span class="section">[composite:openstack_compute_api_v21]</span></span><br><span class="line"><span class="attr">use</span> = call:nova.api.auth:pipeline_factory_v21</span><br><span class="line"><span class="attr">noauth2</span> = cors compute_req_id faultwrap sizelimit osprofiler noauth2 osapi_compute_app_v21</span><br><span class="line"><span class="attr">keystone</span> = cors compute_req_id faultwrap sizelimit osprofiler authtoken keystonecontext osapi_compute_app_v21</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>不难理解，nova api首先使用nova&#x2F;api&#x2F;openstack&#x2F;urlmap中的urlmap_factory函数根据版本对请求进行路由。路由的逻辑如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">urlmap_factory</span>(<span class="params">loader, global_conf, **local_conf</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="string">&#x27;not_found_app&#x27;</span> <span class="keyword">in</span> local_conf:</span><br><span class="line">        not_found_app = local_conf.pop(<span class="string">&#x27;not_found_app&#x27;</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        not_found_app = global_conf.get(<span class="string">&#x27;not_found_app&#x27;</span>)</span><br><span class="line">    <span class="keyword">if</span> not_found_app:</span><br><span class="line">        not_found_app = loader.get_app(not_found_app, global_conf=global_conf)</span><br><span class="line">    urlmap = URLMap(not_found_app=not_found_app)</span><br><span class="line">    <span class="keyword">for</span> path, app_name <span class="keyword">in</span> local_conf.items():</span><br><span class="line">        path = paste.urlmap.parse_path_expression(path)</span><br><span class="line">        app = loader.get_app(app_name, global_conf=global_conf)</span><br><span class="line">        urlmap[path] = app</span><br><span class="line">    <span class="keyword">return</span> urlmap</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">URLMap</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self, environ, start_response</span>):</span><br><span class="line">        host = environ.get(<span class="string">&#x27;HTTP_HOST&#x27;</span>, environ.get(<span class="string">&#x27;SERVER_NAME&#x27;</span>)).lower()</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&#x27;:&#x27;</span> <span class="keyword">in</span> host:</span><br><span class="line">            host, port = host.split(<span class="string">&#x27;:&#x27;</span>, <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> environ[<span class="string">&#x27;wsgi.url_scheme&#x27;</span>] == <span class="string">&#x27;http&#x27;</span>:</span><br><span class="line">                port = <span class="string">&#x27;80&#x27;</span></span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                port = <span class="string">&#x27;443&#x27;</span></span><br><span class="line"></span><br><span class="line">        path_info = environ[<span class="string">&#x27;PATH_INFO&#x27;</span>]</span><br><span class="line">        path_info = self.normalize_url(path_info, <span class="literal">False</span>)[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">        <span class="comment"># The MIME type for the response is determined in one of two ways:</span></span><br><span class="line">        <span class="comment"># 1) URL path suffix (eg /servers/detail.json)</span></span><br><span class="line">        <span class="comment"># 2) Accept header (eg application/json;q=0.8, application/xml;q=0.2)</span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># The API version is determined in one of three ways:</span></span><br><span class="line">        <span class="comment"># 1) URL path prefix (eg /v1.1/tenant/servers/detail)</span></span><br><span class="line">        <span class="comment"># 2) Content-Type header (eg application/json;version=1.1)</span></span><br><span class="line">        <span class="comment"># 3) Accept header (eg application/json;q=0.8;version=1.1)</span></span><br><span class="line"></span><br><span class="line">        supported_content_types = <span class="built_in">list</span>(wsgi.get_supported_content_types())</span><br><span class="line"></span><br><span class="line">        mime_type, app, app_url = self._path_strategy(host, port, path_info)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># Accept application/atom+xml for the index query of each API</span></span><br><span class="line">        <span class="comment"># version mount point as well as the root index</span></span><br><span class="line">        <span class="keyword">if</span> (app_url <span class="keyword">and</span> app_url + <span class="string">&#x27;/&#x27;</span> == path_info) <span class="keyword">or</span> path_info == <span class="string">&#x27;/&#x27;</span>:</span><br><span class="line">            supported_content_types.append(<span class="string">&#x27;application/atom+xml&#x27;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> app:</span><br><span class="line">            app = self._content_type_strategy(host, port, environ)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> mime_type <span class="keyword">or</span> <span class="keyword">not</span> app:</span><br><span class="line">            possible_mime_type, possible_app = self._accept_strategy(</span><br><span class="line">                    host, port, environ, supported_content_types)</span><br><span class="line">            <span class="keyword">if</span> possible_mime_type <span class="keyword">and</span> <span class="keyword">not</span> mime_type:</span><br><span class="line">                mime_type = possible_mime_type</span><br><span class="line">            <span class="keyword">if</span> possible_app <span class="keyword">and</span> <span class="keyword">not</span> app:</span><br><span class="line">                app = possible_app</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> mime_type:</span><br><span class="line">            mime_type = <span class="string">&#x27;application/json&#x27;</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> app:</span><br><span class="line">            <span class="comment"># Didn&#x27;t match a particular version, probably matches default</span></span><br><span class="line">            app, app_url = self._<span class="keyword">match</span>(host, port, path_info)</span><br><span class="line">            <span class="keyword">if</span> app:</span><br><span class="line">                app = self._munge_path(app, path_info, app_url)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> app:</span><br><span class="line">            environ[<span class="string">&#x27;nova.best_content_type&#x27;</span>] = mime_type</span><br><span class="line">            <span class="keyword">return</span> app(environ, start_response)</span><br><span class="line"></span><br><span class="line">        LOG.debug(<span class="string">&#x27;Could not find application for %s&#x27;</span>, environ[<span class="string">&#x27;PATH_INFO&#x27;</span>])</span><br><span class="line">        environ[<span class="string">&#x27;paste.urlmap_object&#x27;</span>] = self</span><br><span class="line">        <span class="keyword">return</span> self.not_found_application(environ, start_response)</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>以上的URLMap只保留了__call__部分的代码，可以看出URLMap实现了根据不同的版本信息路由到不同的不同的组件中。假设使用的版本为v21，继续openstack_compute_api_v21实现了那些功能。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">_load_pipeline</span>(<span class="params">loader, pipeline</span>):</span><br><span class="line">    filters = [loader.get_filter(n) <span class="keyword">for</span> n <span class="keyword">in</span> pipeline[:-<span class="number">1</span>]]</span><br><span class="line">    app = loader.get_app(pipeline[-<span class="number">1</span>])</span><br><span class="line">    filters.reverse()</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">filter</span> <span class="keyword">in</span> filters:</span><br><span class="line">        app = <span class="built_in">filter</span>(app)</span><br><span class="line">    <span class="keyword">return</span> app</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">pipeline_factory</span>(<span class="params">loader, global_conf, **local_conf</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;A paste pipeline replica that keys off of auth_strategy.&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    pipeline = local_conf[CONF.auth_strategy]</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> CONF.api_rate_limit:</span><br><span class="line">        limit_name = CONF.auth_strategy + <span class="string">&#x27;_nolimit&#x27;</span></span><br><span class="line">        pipeline = local_conf.get(limit_name, pipeline)</span><br><span class="line">    pipeline = pipeline.split()</span><br><span class="line">    <span class="keyword">return</span> _load_pipeline(loader, pipeline)</span><br></pre></td></tr></table></figure>
+<p>这一段的逻辑也不难理解，pipeline实现了加载配置文件中的所有filter并将app作为参数逐层传入filter中。跳过filter中的内容，下一步直接跳入到最后的app，看一下app是如何实现的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># nova/api/openstack/compute/__init__.py</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">APIRouterV21</span>(nova.api.openstack.APIRouterV21):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Routes requests on the OpenStack API to the appropriate controller</span></span><br><span class="line"><span class="string">    and method.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, init_only=<span class="literal">None</span></span>):</span><br><span class="line">        self._loaded_extension_info = extension_info.LoadedExtensionInfo()</span><br><span class="line">        <span class="built_in">super</span>(APIRouterV21, self).__init__(init_only)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_register_extension</span>(<span class="params">self, ext</span>):</span><br><span class="line">        <span class="keyword">return</span> self.loaded_extension_info.register_extension(ext.obj)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">loaded_extension_info</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> self._loaded_extension_info</span><br></pre></td></tr></table></figure>
+<p>这里的实现了很少的逻辑，只加载了一个extensionInfo，主要参数由它的父类实现，继续看父类代码。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">APIRouterV21</span>(base_wsgi.Router):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Routes requests on the OpenStack v2.1 API to the appropriate controller</span></span><br><span class="line"><span class="string">    and method.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">factory</span>(<span class="params">cls, global_config, **local_config</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Simple paste factory, :class:`nova.wsgi.Router` doesn&#x27;t have one.&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">return</span> cls()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, init_only=<span class="literal">None</span>, v3mode=<span class="literal">False</span></span>):</span><br><span class="line">        self.api_extension_manager = stevedore.enabled.EnabledExtensionManager(</span><br><span class="line">            namespace=self.api_extension_namespace(),</span><br><span class="line">            check_func=_check_load_extension,</span><br><span class="line">            invoke_on_load=<span class="literal">True</span>,</span><br><span class="line">            invoke_kwds=&#123;<span class="string">&quot;extension_info&quot;</span>: self.loaded_extension_info&#125;)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> v3mode:</span><br><span class="line">            mapper = PlainMapper()</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            mapper = ProjectMapper()</span><br><span class="line"></span><br><span class="line">        self.resources = &#123;&#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># NOTE(cyeoh) Core API support is rewritten as extensions</span></span><br><span class="line">        <span class="comment"># but conceptually still have core</span></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">list</span>(self.api_extension_manager):</span><br><span class="line">            <span class="comment"># NOTE(cyeoh): Stevedore raises an exception if there are</span></span><br><span class="line">            <span class="comment"># no plugins detected. I wonder if this is a bug.</span></span><br><span class="line">            self._register_resources_check_inherits(mapper)</span><br><span class="line">            self.api_extension_manager.<span class="built_in">map</span>(self._register_controllers)</span><br><span class="line"></span><br><span class="line">        missing_core_extensions = self.get_missing_core_extensions(</span><br><span class="line">            self.loaded_extension_info.get_extensions().keys())</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> self.init_only <span class="keyword">and</span> missing_core_extensions:</span><br><span class="line">            LOG.critical(_LC(<span class="string">&quot;Missing core API extensions: %s&quot;</span>),</span><br><span class="line">                         missing_core_extensions)</span><br><span class="line">            <span class="keyword">raise</span> exception.CoreAPIMissing(</span><br><span class="line">                missing_apis=missing_core_extensions)</span><br><span class="line"></span><br><span class="line">        LOG.info(_LI(<span class="string">&quot;Loaded extensions: %s&quot;</span>),</span><br><span class="line">                 <span class="built_in">sorted</span>(self.loaded_extension_info.get_extensions().keys()))</span><br><span class="line">        <span class="built_in">super</span>(APIRouterV21, self).__init__(mapper)</span><br></pre></td></tr></table></figure>
+<p>删除了部分校验相关代码，可以看到这个类主要实现了对于mapper的初始化，并且使用stevedore加载了了一个api_extension_manager。然后使用api_extension_manager将resources注册进了mapper中。继续看他的父类。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Router</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;WSGI middleware that maps incoming requests to WSGI apps.&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, mapper</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Create a router for the given routes.Mapper.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        Each route in `mapper` must specify a &#x27;controller&#x27;, which is a</span></span><br><span class="line"><span class="string">        WSGI app to call.  You&#x27;ll probably want to specify an &#x27;action&#x27; as</span></span><br><span class="line"><span class="string">        well and have your controller be an object that can route</span></span><br><span class="line"><span class="string">        the request to the action-specific method.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        Examples:</span></span><br><span class="line"><span class="string">          mapper = routes.Mapper()</span></span><br><span class="line"><span class="string">          sc = ServerController()</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">          # Explicit mapping of one route to a controller+action</span></span><br><span class="line"><span class="string">          mapper.connect(None, &#x27;/svrlist&#x27;, controller=sc, action=&#x27;list&#x27;)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">          # Actions are all implicitly defined</span></span><br><span class="line"><span class="string">          mapper.resource(&#x27;server&#x27;, &#x27;servers&#x27;, controller=sc)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">          # Pointing to an arbitrary WSGI app.  You can specify the</span></span><br><span class="line"><span class="string">          # &#123;path_info:.*&#125; parameter so the target app can be handed just that</span></span><br><span class="line"><span class="string">          # section of the URL.</span></span><br><span class="line"><span class="string">          mapper.connect(None, &#x27;/v1.0/&#123;path_info:.*&#125;&#x27;, controller=BlogApp())</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        &quot;&quot;&quot;</span></span><br><span class="line">        self.<span class="built_in">map</span> = mapper</span><br><span class="line">        self._router = routes.middleware.RoutesMiddleware(self._dispatch,</span><br><span class="line">                                                          self.<span class="built_in">map</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @webob.dec.wsgify(<span class="params">RequestClass=Request</span>)</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self, req</span>):</span><br><span class="line">        <span class="keyword">return</span> self._router</span><br><span class="line"></span><br><span class="line"><span class="meta">    @staticmethod</span></span><br><span class="line"><span class="meta">    @webob.dec.wsgify(<span class="params">RequestClass=Request</span>)</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_dispatch</span>(<span class="params">req</span>):</span><br><span class="line">        <span class="keyword">match</span> = req.environ[<span class="string">&#x27;wsgiorg.routing_args&#x27;</span>][<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">match</span>:</span><br><span class="line">            <span class="keyword">return</span> webob.exc.HTTPNotFound()</span><br><span class="line">        app = <span class="keyword">match</span>[<span class="string">&#x27;controller&#x27;</span>]</span><br><span class="line">        <span class="keyword">return</span> app</span><br></pre></td></tr></table></figure>
+<p>实现了wsgi app约定的__call__方法，返回了router，rotuer的功能就是将地址路由到具体的函数中。至此一个url及其匹配的处理函数就已经被找到了，但是还有一个问题，api_extension_manager中都有些什么东西。这里用到了stevedore的动态加载功能，stevedore根据配置文件，将不同的资源初始化到不同的命名空间中，使用的过程中，指定命名空间，并加载对应的source就可以了,以server的resource为例。</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nova.api.v21.extensions </span><br><span class="line">    <span class="attr">servers</span> = nova.api.openstack.compute.servers:Servers</span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Servers</span>(extensions.V21APIExtensionBase):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Servers.&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">    name = <span class="string">&quot;Servers&quot;</span></span><br><span class="line">    alias = ALIAS</span><br><span class="line">    version = <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">get_resources</span>(<span class="params">self</span>):</span><br><span class="line">        member_actions = &#123;<span class="string">&#x27;action&#x27;</span>: <span class="string">&#x27;POST&#x27;</span>, <span class="string">&#x27;disk&#x27;</span>: <span class="string">&#x27;GET&#x27;</span>&#125;</span><br><span class="line">        collection_actions = &#123;<span class="string">&#x27;detail&#x27;</span>: <span class="string">&#x27;GET&#x27;</span>&#125;</span><br><span class="line">        resources = [</span><br><span class="line">            extensions.ResourceExtension(</span><br><span class="line">                ALIAS,</span><br><span class="line">                ServersController(extension_info=self.extension_info),</span><br><span class="line">                member_name=<span class="string">&#x27;server&#x27;</span>, collection_actions=collection_actions,</span><br><span class="line">                member_actions=member_actions)]</span><br><span class="line"></span><br><span class="line">        res = extensions.ResourceExtension(<span class="string">&#x27;os-get_servers_info&#x27;</span>,</span><br><span class="line">                                           GetServersInfoController())</span><br><span class="line">        resources.append(res)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> resources</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">get_controller_extensions</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">return</span> []</span><br></pre></td></tr></table></figure>
+<p>至此，nova-api的基本逻辑就基本完成了，其中仍有很多细节，需要阅读具体的代码，后续会继续整理nova其他组件的代码。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/EasyBlog/tags/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/" rel="tag"># 源码阅读</a>
+              <a href="/EasyBlog/tags/OpenStack/" rel="tag"># OpenStack</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/EasyBlog/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/" rel="prev" title="为什么我们需要TCP(二)">
+      <i class="fa fa-chevron-left"></i> 为什么我们需要TCP(二)
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#nova%E7%9A%84%E6%9E%84%E6%88%90"><span class="nav-number">1.</span> <span class="nav-text">nova的构成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nova%E7%9A%84%E5%86%85%E9%83%A8%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">nova的内部的基本流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nova-api%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">nova api的实现</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Xu</p>
+  <div class="site-description" itemprop="description">独自发疯</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/EasyBlog/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Xu</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动 -->
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/EasyBlog/lib/anime.min.js"></script>
+  <script src="/EasyBlog/lib/velocity/velocity.min.js"></script>
+  <script src="/EasyBlog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/EasyBlog/js/utils.js"></script>
+
+<script src="/EasyBlog/js/motion.js"></script>
+
+
+<script src="/EasyBlog/js/schemes/muse.js"></script>
+
+
+<script src="/EasyBlog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

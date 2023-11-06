@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/EasyBlog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/EasyBlog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/EasyBlog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/EasyBlog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/EasyBlog/css/main.css">
+
+
+<link rel="stylesheet" href="/EasyBlog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xudalin0609.github.io","root":"/EasyBlog/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="flask 是如何取出 request 的之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。 12">
+<meta property="og:type" content="article">
+<meta property="og:title" content="flask源码阅读(三)">
+<meta property="og:url" content="http://xudalin0609.github.io/EasyBlog/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/index.html">
+<meta property="og:site_name" content="Relax And Slower">
+<meta property="og:description" content="flask 是如何取出 request 的之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。 12">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-12-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-11-06T15:07:46.515Z">
+<meta property="article:author" content="Xu">
+<meta property="article:tag" content="源码阅读">
+<meta property="article:tag" content="Flask">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>flask源码阅读(三) | Relax And Slower</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/EasyBlog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Relax And Slower</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/EasyBlog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/EasyBlog/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/EasyBlog/images/avatar.gif">
+      <meta itemprop="name" content="Xu">
+      <meta itemprop="description" content="独自发疯">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Relax And Slower">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          flask源码阅读(三)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-11-06 23:07:46" itemprop="dateModified" datetime="2023-11-06T23:07:46+08:00">2023-11-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/EasyBlog/categories/Flask/" itemprop="url" rel="index"><span itemprop="name">Flask</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="flask-是如何取出-request-的"><a href="#flask-是如何取出-request-的" class="headerlink" title="flask 是如何取出 request 的"></a>flask 是如何取出 request 的</h1><p>之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">wsgi_app</span>(<span class="params">self, environ, start_response</span>):</span><br><span class="line">    ctx = self.request_context(environ)</span><br><span class="line">    ctx.push()</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">request_context</span>(<span class="params">self, environ</span>):</span><br><span class="line">    <span class="keyword">return</span> RequestContext(self, environ)</span><br></pre></td></tr></table></figure>
+
+<p>可以看到 wsgi_app()调用了 request_context()方法，request_context()返回了 RequestContext 的实例。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">RequestContext</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, app, environ, request=<span class="literal">None</span></span>):</span><br><span class="line">        self.app = app</span><br><span class="line">        <span class="keyword">if</span> request <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            request = app.request_class(environ)</span><br><span class="line">        self.request = request</span><br><span class="line">        self.url_adapter = app.create_url_adapter(self.request)</span><br><span class="line">        self.flashes = <span class="literal">None</span></span><br><span class="line">        self.session = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        self._implicit_app_ctx_stack = []</span><br><span class="line"></span><br><span class="line">        self.preserved = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        self._preserved_exc = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        self._after_request_functions = []</span><br><span class="line"></span><br><span class="line">        self.match_request()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">push</span>(<span class="params">self</span>):</span><br><span class="line"></span><br><span class="line">        top = _request_ctx_stack.top</span><br><span class="line">        <span class="keyword">if</span> top <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> top.preserved:</span><br><span class="line">            top.pop(top._preserved_exc)</span><br><span class="line"></span><br><span class="line">        app_ctx = _app_ctx_stack.top</span><br><span class="line">        <span class="keyword">if</span> app_ctx <span class="keyword">is</span> <span class="literal">None</span> <span class="keyword">or</span> app_ctx.app != self.app:</span><br><span class="line">            app_ctx = self.app.app_context()</span><br><span class="line">            app_ctx.push()</span><br><span class="line">            self._implicit_app_ctx_stack.append(app_ctx)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self._implicit_app_ctx_stack.append(<span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">hasattr</span>(sys, <span class="string">&#x27;exc_clear&#x27;</span>):</span><br><span class="line">            sys.exc_clear()</span><br><span class="line"></span><br><span class="line">        _request_ctx_stack.push(self)</span><br><span class="line"></span><br><span class="line">        self.session = self.app.open_session(self.request)</span><br><span class="line">        <span class="keyword">if</span> self.session <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self.session = self.app.make_null_session()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>在初始化 RequestContext 实例的时候，传入了 Flask()实例和 environ 变量，并使用 environ 生成了 Requst 实例，这里不继续深究 Requst 实例的细节。</p>
+<p>继续分析 push()函数做了什么。这里使用到了_request_ctx_stack 和_app_ctx_stack 的全局变量。分别对_request_ctx_stack 和_app_ctx_stack 取出了栈顶的值，并且将 ReqeustContext 的实例压入_request_ctx_stack 中。那么_reqeust_ctx_stack 和_app_ctx_stack 是什么呢？又为什么要使用这两个栈呢？继续看看这两个栈的代码细节。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># context locals</span></span><br><span class="line">_request_ctx_stack = LocalStack()</span><br><span class="line">_app_ctx_stack = LocalStack()</span><br><span class="line">current_app = LocalProxy(_find_app)</span><br><span class="line">request = LocalProxy(partial(_lookup_req_object, <span class="string">&#x27;request&#x27;</span>))</span><br><span class="line">session = LocalProxy(partial(_lookup_req_object, <span class="string">&#x27;session&#x27;</span>))</span><br><span class="line">g = LocalProxy(partial(_lookup_app_object, <span class="string">&#x27;g&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
+<p>可以看到二者都是 LocalStack()的实例，至此我们可以知道，我们处理 environ 参数的流程如下</p>
+<ol>
+<li>获取到 environ</li>
+<li>生成 RequestContext 对象</li>
+<li>将 RequestContext 压入_request_ctx_stack</li>
+</ol>
+<p>回忆我们前文找到业务逻辑并传入参数的代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">dispatch_request</span>(<span class="params">self</span>):</span><br><span class="line">    req = _request_ctx_stack.top.request</span><br><span class="line">    <span class="keyword">if</span> req.routing_exception <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        self.raise_routing_exception(req)</span><br><span class="line">    rule = req.url_rule</span><br><span class="line">    <span class="comment"># if we provide automatic options for this URL and the</span></span><br><span class="line">    <span class="comment"># request came with the OPTIONS method, reply automatically</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">getattr</span>(rule, <span class="string">&#x27;provide_automatic_options&#x27;</span>, <span class="literal">False</span>) \</span><br><span class="line">       <span class="keyword">and</span> req.method == <span class="string">&#x27;OPTIONS&#x27;</span>:</span><br><span class="line">        <span class="keyword">return</span> self.make_default_options_response()</span><br><span class="line">    <span class="comment"># otherwise dispatch to the handler for that endpoint</span></span><br><span class="line">    <span class="keyword">return</span> self.view_functions[rule.endpoint](**req.view_args)</span><br></pre></td></tr></table></figure>
+
+<p>也就是说从当前的栈顶直接取出就是 reqeust 的参数，那么问题来了，如果是多线程的情况，如何能保证取到当前线程的参数呢？继续深入 LocalStack 的代码实现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LocalStack</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self._local = Local()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__release_local__</span>(<span class="params">self</span>):</span><br><span class="line">        self._local.__release_local__()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">def</span> <span class="title function_">_lookup</span>():</span><br><span class="line">            rv = self.top</span><br><span class="line">            <span class="keyword">if</span> rv <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">                <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;object unbound&#x27;</span>)</span><br><span class="line">            <span class="keyword">return</span> rv</span><br><span class="line">        <span class="keyword">return</span> LocalProxy(_lookup)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">push</span>(<span class="params">self, obj</span>):</span><br><span class="line">        rv = <span class="built_in">getattr</span>(self._local, <span class="string">&#x27;stack&#x27;</span>, <span class="literal">None</span>)</span><br><span class="line">        <span class="keyword">if</span> rv <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            self._local.stack = rv = []</span><br><span class="line">        rv.append(obj)</span><br><span class="line">        <span class="keyword">return</span> rv</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">pop</span>(<span class="params">self</span>):</span><br><span class="line">        stack = <span class="built_in">getattr</span>(self._local, <span class="string">&#x27;stack&#x27;</span>, <span class="literal">None</span>)</span><br><span class="line">        <span class="keyword">if</span> stack <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">        <span class="keyword">elif</span> <span class="built_in">len</span>(stack) == <span class="number">1</span>:</span><br><span class="line">            release_local(self._local)</span><br><span class="line">            <span class="keyword">return</span> stack[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> stack.pop()</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">top</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self._local.stack[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">except</span> (AttributeError, IndexError):</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span></span><br></pre></td></tr></table></figure>
+
+<p>LocalStack 并没有解决我们的问题。但是我们可以知道，其实 LocalStack 内部实现了 Local 的实例_local，并将传入的值以”stack”的 key 传入_local。那么 Local 又实现了什么？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="keyword">from</span> greenlet <span class="keyword">import</span> getcurrent <span class="keyword">as</span> get_ident</span><br><span class="line"><span class="keyword">except</span> ImportError:</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">from</span> thread <span class="keyword">import</span> get_ident</span><br><span class="line">    <span class="keyword">except</span> ImportError:</span><br><span class="line">        <span class="keyword">from</span> _thread <span class="keyword">import</span> get_ident</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Local</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    __slots__ = (<span class="string">&#x27;__storage__&#x27;</span>, <span class="string">&#x27;__ident_func__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__storage__&#x27;</span>, &#123;&#125;)</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__ident_func__&#x27;</span>, get_ident)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__call__</span>(<span class="params">self, proxy</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Create a proxy for a name.&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">return</span> LocalProxy(self, proxy)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__release_local__</span>(<span class="params">self</span>):</span><br><span class="line">        self.__storage__.pop(self.__ident_func__(), <span class="literal">None</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self.__storage__[self.__ident_func__()][name]</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__setattr__</span>(<span class="params">self, name, value</span>):</span><br><span class="line">        ident = self.__ident_func__()</span><br><span class="line">        storage = self.__storage__</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            storage[ident][name] = value</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            storage[ident] = &#123;name: value&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__delattr__</span>(<span class="params">self, name</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">del</span> self.__storage__[self.__ident_func__()][name]</span><br><span class="line">        <span class="keyword">except</span> KeyError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(name)</span><br></pre></td></tr></table></figure>
+
+<p>从以上可以发现重写了<strong>setattr</strong>, <strong>delattr</strong>, <strong>release_local</strong>方法 Local 将相关的属性存入了<strong>storage</strong>,而<strong>setattr</strong>在存储 key,value 的时候，使用的其实是一个二层字典，结构为<strong>storage</strong>[ident][name],其中 ident 为 get_ident()方法的返回值，也就是当前线程的值。这也就解释了 Local 是如何实现线程隔离的存储 request 参数的了。</p>
+<p>在 Local 的<strong>call</strong>中，创建了一个 LocalProxy 对象，那么这又是什么？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">LocalProxy</span>(<span class="title class_ inherited__">object</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Acts as a proxy for a werkzeug local.</span></span><br><span class="line"><span class="string">    Forwards all operations to a proxied object. &quot;&quot;&quot;</span></span><br><span class="line">    __slots__ = (<span class="string">&#x27;__local&#x27;</span>, <span class="string">&#x27;__dict__&#x27;</span>, <span class="string">&#x27;__name__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, local, name=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;_LocalProxy__local&#x27;</span>, local)</span><br><span class="line">        <span class="built_in">object</span>.__setattr__(self, <span class="string">&#x27;__name__&#x27;</span>, name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_get_current_object</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;Return the current object.&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">hasattr</span>(self.__local, <span class="string">&#x27;__release_local__&#x27;</span>):</span><br><span class="line">            <span class="keyword">return</span> self.__local()</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">getattr</span>(self.__local, self.__name__)</span><br><span class="line">        <span class="keyword">except</span> AttributeError:</span><br><span class="line">            <span class="keyword">raise</span> RuntimeError(<span class="string">&#x27;no object bound to %s&#x27;</span> % self.__name__)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @property</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__dict__</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">return</span> self._get_current_object().__dict__</span><br><span class="line">        <span class="keyword">except</span> RuntimeError:</span><br><span class="line">            <span class="keyword">raise</span> AttributeError(<span class="string">&#x27;__dict__&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__getattr__</span>(<span class="params">self, name</span>):</span><br><span class="line">        <span class="keyword">if</span> name == <span class="string">&#x27;__members__&#x27;</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">dir</span>(self._get_current_object())</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">getattr</span>(self._get_current_object(), name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__setitem__</span>(<span class="params">self, key, value</span>):</span><br><span class="line">        self._get_current_object()[key] = value</span><br></pre></td></tr></table></figure>
+
+<p>我们看到在 LocalProxy 类出初始化的时候，传入了一个 local 对象。并将该对象保存在<strong>local 中。**注意，</strong>setattr<strong>方法中使用的是_LocalProxy</strong>local,这是因为在 python 中<strong>开头的属性会被保存为_ClassName</strong>variable 的形式**。然后使用的是_get_current_object()方法从__local 中获取对应的对象。</p>
+<p>这里实现的关键是把通过参数传递进来的 Local 实例保存在 __local 属性中，并定义了 _get_current_object() 方法获取当前线程或者协程对应的对象。</p>
+<p>LocalProxy 是一个典型的代理模式实现，它在构造时接受一个 callable 的参数（比如一个函数），这个参数被调用后的返回值本身应该是一个 Thread Local 对象。对一个 LocalProxy 对象的所有操作，包括属性访问、方法调用（当然方法调用就是属性访问）甚至是二元操作都会转发到那个 callable 参数返回的 Thread Local 对象上。</p>
+<p>LocalProxy 的一个使用场景是 LocalStack 的 <strong>call</strong> 方法。比如 my_local_stack 是一个 LocalStack 实例，那么 my_local_stack() 能返回一个 LocalProxy 对象，这个对象始终指向 my_local_stack 的栈顶元素。如果栈顶元素不存在，访问这个 LocalProxy 的时候会抛出 RuntimeError。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/EasyBlog/tags/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/" rel="tag"># 源码阅读</a>
+              <a href="/EasyBlog/tags/Flask/" rel="tag"># Flask</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/EasyBlog/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%B8%89)/" rel="prev" title="为什么我们需要TCP(三)">
+      <i class="fa fa-chevron-left"></i> 为什么我们需要TCP(三)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/EasyBlog/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%BA%8C)/" rel="next" title="flask源码阅读(二)">
+      flask源码阅读(二) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#flask-%E6%98%AF%E5%A6%82%E4%BD%95%E5%8F%96%E5%87%BA-request-%E7%9A%84"><span class="nav-number">1.</span> <span class="nav-text">flask 是如何取出 request 的</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Xu</p>
+  <div class="site-description" itemprop="description">独自发疯</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/EasyBlog/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Xu</span>
+</div>
+  <div class="powered-by">
+    <!--由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动 -->
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/EasyBlog/lib/anime.min.js"></script>
+  <script src="/EasyBlog/lib/velocity/velocity.min.js"></script>
+  <script src="/EasyBlog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/EasyBlog/js/utils.js"></script>
+
+<script src="/EasyBlog/js/motion.js"></script>
+
+
+<script src="/EasyBlog/js/schemes/muse.js"></script>
+
+
+<script src="/EasyBlog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
