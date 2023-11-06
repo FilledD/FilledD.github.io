@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
 <meta name="generator" content="Hexo 7.0.0">
-  <link rel="apple-touch-icon" sizes="180x180" href="/EasyBlog/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/EasyBlog/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/EasyBlog/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/EasyBlog/images/logo.svg" color="#222">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
 
-<link rel="stylesheet" href="/EasyBlog/css/main.css">
+<link rel="stylesheet" href="/css/main.css">
 
 
-<link rel="stylesheet" href="/EasyBlog/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"xudalin0609.github.io","root":"/EasyBlog/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"xudalin0609.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
   <meta name="description" content="什么是进程要回答这个问题，首先要清楚，我们在思考哪些问题？  我们已经有程序这个概念的，为什么要搞出来一个进程？ 进程做了什么事情？ 进程是如何被创建的？  进程和程序的区别首先我们具体的思考一下什么是程序。在日常使用中的许多东西，比如浏览器，播放器等等一系列内容我们都称之为程序。 但是当我们查看系统的进程时，会发现并不是所有已安装的程序都会出现，只有部分运行中的程序才会被创建一个进程。也就是说，">
 <meta property="og:type" content="article">
 <meta property="og:title" content="什么是进程">
-<meta property="og:url" content="http://xudalin0609.github.io/EasyBlog/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/index.html">
+<meta property="og:url" content="http://xudalin0609.github.io/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/index.html">
 <meta property="og:site_name" content="Relax And Slower">
 <meta property="og:description" content="什么是进程要回答这个问题，首先要清楚，我们在思考哪些问题？  我们已经有程序这个概念的，为什么要搞出来一个进程？ 进程做了什么事情？ 进程是如何被创建的？  进程和程序的区别首先我们具体的思考一下什么是程序。在日常使用中的许多东西，比如浏览器，播放器等等一系列内容我们都称之为程序。 但是当我们查看系统的进程时，会发现并不是所有已安装的程序都会出现，只有部分运行中的程序才会被创建一个进程。也就是说，">
 <meta property="og:locale" content="zh_CN">
@@ -33,7 +33,7 @@
 <meta property="article:tag" content="其他">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">
+<link rel="canonical" href="http://xudalin0609.github.io/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">
 
 
 <script id="page-configurations">
@@ -95,7 +95,7 @@
 
   <div class="site-meta">
 
-    <a href="/EasyBlog/" class="brand" rel="start">
+    <a href="/" class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
       <h1 class="site-title">Relax And Slower</h1>
       <span class="logo-line-after"><i></i></span>
@@ -115,12 +115,12 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/EasyBlog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/EasyBlog/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
 
   </li>
   </ul>
@@ -151,10 +151,10 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/EasyBlog/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/EasyBlog/images/avatar.gif">
+      <meta itemprop="image" content="/images/avatar.gif">
       <meta itemprop="name" content="Xu">
       <meta itemprop="description" content="独自发疯">
     </span>
@@ -189,7 +189,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/EasyBlog/categories/%E5%85%B6%E4%BB%96/" itemprop="url" rel="index"><span itemprop="name">其他</span></a>
+                  <a href="/categories/%E5%85%B6%E4%BB%96/" itemprop="url" rel="index"><span itemprop="name">其他</span></a>
                 </span>
             </span>
 
@@ -248,7 +248,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/EasyBlog/tags/%E5%85%B6%E4%BB%96/" rel="tag"># 其他</a>
+              <a href="/tags/%E5%85%B6%E4%BB%96/" rel="tag"># 其他</a>
           </div>
 
         
@@ -257,11 +257,11 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/EasyBlog/2017/01/01/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/" rel="prev" title="关于mysql的锁">
+    <a href="/2017/01/01/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/" rel="prev" title="关于mysql的锁">
       <i class="fa fa-chevron-left"></i> 关于mysql的锁
     </a></div>
       <div class="post-nav-item">
-    <a href="/EasyBlog/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/" rel="next" title="为什么我们需要TCP(二)">
+    <a href="/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/" rel="next" title="为什么我们需要TCP(二)">
       为什么我们需要TCP(二) <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
@@ -334,7 +334,7 @@
 <div class="site-state-wrap motion-element">
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
-          <a href="/EasyBlog/archives/">
+          <a href="/archives/">
         
           <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">日志</span>
@@ -396,19 +396,19 @@
   </div>
 
   
-  <script src="/EasyBlog/lib/anime.min.js"></script>
-  <script src="/EasyBlog/lib/velocity/velocity.min.js"></script>
-  <script src="/EasyBlog/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
 
-<script src="/EasyBlog/js/utils.js"></script>
+<script src="/js/utils.js"></script>
 
-<script src="/EasyBlog/js/motion.js"></script>
-
-
-<script src="/EasyBlog/js/schemes/muse.js"></script>
+<script src="/js/motion.js"></script>
 
 
-<script src="/EasyBlog/js/next-boot.js"></script>
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
 
 
 
