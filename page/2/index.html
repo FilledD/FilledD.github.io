@@ -23,14 +23,14 @@
   <meta name="description" content="独自发疯">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Relax And Slower">
-<meta property="og:url" content="http://xudalin0609.github.io/index.html">
+<meta property="og:url" content="http://xudalin0609.github.io/page/2/index.html">
 <meta property="og:site_name" content="Relax And Slower">
 <meta property="og:description" content="独自发疯">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:author" content="Xu">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://xudalin0609.github.io/">
+<link rel="canonical" href="http://xudalin0609.github.io/page/2/">
 
 
 <script id="page-configurations">
@@ -147,7 +147,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -161,335 +161,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/" class="post-title-link" itemprop="url">flask源码阅读(一)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Flask/" itemprop="url" rel="index"><span itemprop="name">Flask</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="flask是如何被调用的"><a href="#flask是如何被调用的" class="headerlink" title="flask是如何被调用的"></a>flask是如何被调用的</h1><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route(<span class="params"><span class="string">&#x27;/&#x27;</span></span>)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">hello_world</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Hello, World!&#x27;</span></span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == __main__:</span><br><span class="line">    app.run()</span><br></pre></td></tr></table></figure>
-<p>这是官方给出的一个最小的flask应用，可以看出flask的基本功能。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xu">
-      <meta itemprop="description" content="独自发疯">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Relax And Slower">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/" class="post-title-link" itemprop="url">flask源码阅读(三)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Flask/" itemprop="url" rel="index"><span itemprop="name">Flask</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="flask-是如何取出-request-的"><a href="#flask-是如何取出-request-的" class="headerlink" title="flask 是如何取出 request 的"></a>flask 是如何取出 request 的</h1><p>之前分析 wsgi_app()函数的时候看到，当 flask 接受到了请求后，会生成一个 Request 的对象，并调用了 push()方法，在后续的使用中，会直接取出 request 中的参数传入业务逻辑函数。那么 Request 对象内部做了些什么？又是什么样的数据结构呢？这里就开始分析一下 flask 内部的 RequestContext 类。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">wsgi_app</span>(<span class="params">self, environ, start_response</span>):</span><br><span class="line">    ctx = self.request_context(environ)</span><br><span class="line">    ctx.push()</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">request_context</span>(<span class="params">self, environ</span>):</span><br><span class="line">    <span class="keyword">return</span> RequestContext(self, environ)</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%89)/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%BA%8C)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xu">
-      <meta itemprop="description" content="独自发疯">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Relax And Slower">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%BA%8C)/" class="post-title-link" itemprop="url">flask源码阅读(二)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Flask/" itemprop="url" rel="index"><span itemprop="name">Flask</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="flask是如何生成response的"><a href="#flask是如何生成response的" class="headerlink" title="flask是如何生成response的"></a>flask是如何生成response的</h1><p>在之前分析flask是如何启动的过程中看到，wsgi_app（）函数返回了response，但是如何寻找到对应的业务处理函数（路由），并生成response的，被略过了，这里继续进行分析。</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">wsgi_app</span>(<span class="params">self, environ, start_response</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;The actual WSGI application.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    ctx = self.request_context(environ)</span><br><span class="line">    ctx.push()</span><br><span class="line">    error = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            response = self.full_dispatch_request()</span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            response = self.handle_exception(e)</span><br><span class="line">        <span class="keyword">return</span> response(environ, start_response)</span><br><span class="line">    <span class="keyword">finally</span>:</span><br><span class="line">        <span class="keyword">if</span> self.should_ignore_error(error):</span><br><span class="line">            error = <span class="literal">None</span></span><br><span class="line">        ctx.auto_pop(error)</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/01/01/flask%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%BA%8C)/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xu">
-      <meta itemprop="description" content="独自发疯">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Relax And Slower">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/" class="post-title-link" itemprop="url">OpenStack源码阅读(一)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/OpenStack/" itemprop="url" rel="index"><span itemprop="name">OpenStack</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h3 id="nova的构成"><a href="#nova的构成" class="headerlink" title="nova的构成"></a>nova的构成</h3><p>openstac由不同的组件构成，目前常用的组件有nova,cinder,glance,neutron等。组件之间采用restful-api进行通信，组件内部使用RPC进行通讯。</p>
-<p>每个组件内部又分为不同的模块，以nova为例，可以分出的模块如下：</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/01/01/openstack%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB(%E4%B8%80)/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%B8%89)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xu">
-      <meta itemprop="description" content="独自发疯">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Relax And Slower">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%B8%89)/" class="post-title-link" itemprop="url">为什么我们需要TCP(三)</a>
+            <a href="/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/" class="post-title-link" itemprop="url">为什么我们需要TCP(二)</a>
         </h2>
 
         <div class="post-meta">
@@ -529,11 +201,182 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="为什么我们需要-TCP（三）"><a href="#为什么我们需要-TCP（三）" class="headerlink" title="为什么我们需要 TCP（三）"></a>为什么我们需要 TCP（三）</h1><p>之前我们讨论了问什么需要 TCP 和 TCP 是如何创建有效连接的，接下来我们继续思考一下，TCP 的连接是如何安全的断开的。要回答这个问题，我们首先要知道，为什么 TCP 的断开需要解决什么问题。</p>
-<h4 id="场景模拟"><a href="#场景模拟" class="headerlink" title="场景模拟"></a>场景模拟</h4>
+          <h1 id="为什么我们需要TCP（二）"><a href="#为什么我们需要TCP（二）" class="headerlink" title="为什么我们需要TCP（二）"></a>为什么我们需要TCP（二）</h1><p>在为什么我们需要TCP（一）中我们讨论了TCP是如何保证连接是可靠的，但是如何建立一个连接并没有讨论。这次继续这个问题进行思考。</p>
+<h4 id="建立连接要面对的问题"><a href="#建立连接要面对的问题" class="headerlink" title="建立连接要面对的问题"></a>建立连接要面对的问题</h4>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%B8%89)/#more" rel="contents">
+              <a class="btn" href="/2017/01/01/%E4%B8%BA%E4%BB%80%E4%B9%88%E6%88%91%E4%BB%AC%E9%9C%80%E8%A6%81TCP(%E4%BA%8C)/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xu">
+      <meta itemprop="description" content="独自发疯">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Relax And Slower">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/" class="post-title-link" itemprop="url">什么是进程</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%85%B6%E4%BB%96/" itemprop="url" rel="index"><span itemprop="name">其他</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="什么是进程"><a href="#什么是进程" class="headerlink" title="什么是进程"></a>什么是进程</h2><p>要回答这个问题，首先要清楚，我们在思考哪些问题？</p>
+<ol>
+<li>我们已经有程序这个概念的，为什么要搞出来一个进程？</li>
+<li>进程做了什么事情？</li>
+<li>进程是如何被创建的？</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2017/01/01/%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://xudalin0609.github.io/2017/01/01/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xu">
+      <meta itemprop="description" content="独自发疯">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Relax And Slower">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/01/01/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/" class="post-title-link" itemprop="url">关于mysql的锁</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2017-01-01T00:00:00+08:00">2017-01-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-11-13 00:21:30" itemprop="dateModified" datetime="2023-11-13T00:21:30+08:00">2023-11-13</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E9%97%AE%E9%A2%98%E5%AE%9A%E4%BD%8D/" itemprop="url" rel="index"><span itemprop="name">问题定位</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>测试原因：在 mysql 中更新字段类型的时候，发生了 metadata lock，但是<code>show processlist</code>没有发现其他的持有锁的任务正在执行。最后，在阿里云的后台杀掉了一个无效连接，释放了该锁。</p>
+<p>猜测：由于使用 sqlalchemy 的 session 过程中，任务异常停止，导致 sqlalchemy 没有释放连接导致该情况的产生。</p>
+<ol>
+<li>测试 1<br>创建一个 session,并挂起任务，同时修改数据库结构</li>
+</ol>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2017/01/01/%E5%85%B3%E4%BA%8Emysql%E7%9A%84%E9%94%81/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -556,7 +399,7 @@
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
   </nav>
 
 
